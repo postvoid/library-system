@@ -2,6 +2,8 @@
 
 **Простая, но надёжная система для автоматизации работы библиотеки на Python. Поддерживает учёт книг, читательских билетов, выдачу/возврат книг с гарантией целостности данных (транзакции с откатом).**
 
+---
+
 ## 🚀 Возможности
 
 - **Управление книгами** – добавление, удаление, поиск по названию/автору/ISBN
@@ -10,19 +12,27 @@
 - **Поиск** – гибкие фильтры (пагинация, доступность, частичное совпадение)
 - **Сохранение/загрузка** – JSON-сериализация с проверкой целостности данных
 
+---
+
 ## 🛠 Технологии
 
-- Python 3.10+ (используются аннотации типов и `| None`)
-- Встроенная библиотека `json`, `uuid`
+- Python 3.10+ (аннотации типов и `| None`)
+- Встроенные библиотеки: `json`, `uuid`
 - Кастомные исключения для каждого сценария ошибок
+- **pytest** – для тестирования
+
+---
 
 ## 📦 Установка
 
 ```bash
 git clone https://github.com/postvoid/library-system.git
 cd library-system
+```
 
-Кроме pytest никаких внешних зависимостей не требуется — всё на стандартной библиотеке.
+Кроме `pytest` никаких внешних зависимостей не требуется — всё на стандартной библиотеке.
+
+---
 
 ## 🏃 Быстрый старт
 
@@ -53,6 +63,8 @@ print(lib.find_books_by_reader(card.card_id))  # [Мастер и Маргари
 # Сохраняем состояние
 lib.save_to_json("library_backup.json")
 ```
+
+---
 
 ## 📖 API
 
@@ -89,6 +101,8 @@ card.list_borrowed()   # список взятых книг
 | `find_reader_by_book(book_id)` | Кто держит книгу |
 | `save_to_json(path)` / `load_from_json(path)` | Сохранение/загрузка |
 
+---
+
 ## ⚠️ Исключения
 
 | Исключение | Когда возникает |
@@ -103,6 +117,8 @@ card.list_borrowed()   # список взятых книг
 | `TransactionError` | Сбой операции (состояние откачено) |
 | `InvalidDataError` | Повреждённый JSON при загрузке |
 
+---
+
 ## 💾 Формат данных
 
 Сохраняемый JSON-файл имеет структуру:
@@ -111,21 +127,69 @@ card.list_borrowed()   # список взятых книг
 {
   "version": "1.0",
   "books": [
-    {"id": "...", "title": "...", "author": "...", "isbn": "...", "available": true, "metadata": {}}
+    {
+      "id": "...",
+      "title": "...",
+      "author": "...",
+      "isbn": "...",
+      "available": true,
+      "metadata": {}
+    }
   ],
   "cards": [
-    {"card_id": "...", "owner": "...", "borrowed": ["book_id1"], "borrow_limit": 5}
+    {
+      "card_id": "...",
+      "owner": "...",
+      "borrowed": ["book_id1"],
+      "borrow_limit": 5
+    }
   ]
 }
 ```
 
-## 🧪 Тестирование
+---
 
-В файле `tests.py` приведены примеры тестирования с использованием `pytest`.
+## 🧪 Тестирование с pytest
+
+В файле `tests.py` приведены примеры тестирования.
 
 ```bash
+# Установка pytest
+pip install pytest pytest-cov
+
+# Запуск тестов
 pytest tests.py -v
+
+# Запуск с отчётом о покрытии
+pytest tests.py --cov=. --cov-report=term-missing
 ```
+
+**Пример теста:**
+
+```python
+def test_borrow_available_book():
+    lib = Library()
+    book = Book("Title", "Author")
+    card = LibraryCard("Owner")
+    lib.add_book(book)
+    lib.add_card(card)
+    
+    lib.borrow(card.card_id, book.book_id)
+    assert not book.is_available()
+    assert card.has_borrowed(book.book_id)
+
+def test_borrow_unavailable_book():
+    lib = Library()
+    book = Book("Title", "Author", available=False)
+    card = LibraryCard("Owner")
+    lib.add_book(book)
+    lib.add_card(card)
+    
+    with pytest.raises(BookNotAvailableError):
+        lib.borrow(card.card_id, book.book_id)
+```
+
+---
 
 ## 📁 Структура проекта
 
@@ -142,9 +206,12 @@ library-system/
 └── README.md
 ```
 
+---
+
 ## 🔒 Принципы работы
 
 - **Атомарность операций** – выдача и возврат обёрнуты в транзакции с откатом
 - **Инкапсуляция** – внутренние поля (`_borrowed`, `_available`) защищены
 - **Проверка согласованности** – при загрузке из JSON проверяются ссылки между книгами и картами
 - **Информативные ошибки** – каждое исключение содержит пояснение
+```
